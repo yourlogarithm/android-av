@@ -1,6 +1,5 @@
 use anyhow::Context;
-use axum::body::Bytes;
-use dexompiler::parse;
+use dexompiler::Apk;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tensorflow::{Graph, SavedModelBundle, SessionOptions, SessionRunArgs, Tensor};
@@ -110,7 +109,7 @@ impl Malceiver {
         Self { graph, bundle }
     }
 
-    pub fn predict(&self, apks: &[Bytes]) -> anyhow::Result<Vec<Prediction>> {
+    pub fn predict(&self, apks: &[Apk]) -> anyhow::Result<Vec<Prediction>> {
         let signature = self.bundle
             .meta_graph_def()
             .get_signature("serving_default")
@@ -132,18 +131,17 @@ impl Malceiver {
         let output_op = self.graph
             .operation_by_name_required(&output_info.name().name)
             .unwrap();
+        let batch_size = apks.len() as u64;
         let mut batch_opcodes = Vec::with_capacity(apks.len());
         let mut batch_indices = Vec::with_capacity(apks.len());
         let mut batch_permissions = Vec::with_capacity(apks.len());
-        for apk in apks {
-            let cursor = std::io::Cursor::new(apk);
-            let apk = parse(cursor)?;
+        for apk in apks.iter() {
             let mut opcodes = Vec::new();
             let mut indices = Vec::new();
             let mut index = 0;
-            for method in apk.methods {
+            for method in &apk.methods {
                 let tmp = index + method.insns.len() as i32;
-                opcodes.extend(method.insns.into_iter().map(|inst| inst.opcode as u8));
+                opcodes.extend(method.insns.iter().map(|inst| inst.opcode as u8));
                 indices.push(index);
                 indices.push(tmp - 1);
                 index = tmp;
@@ -153,8 +151,8 @@ impl Malceiver {
             }
             batch_opcodes.push(opcodes);
             batch_indices.push(indices);
-            let apk_perms = if let Some(manifest) = apk.manifest {
-                manifest.permissions.into_iter().collect()
+            let apk_perms = if let Some(manifest) = &apk.manifest {
+                manifest.permissions.iter().map(|s| s.as_ref()).collect()
             } else {
                 HashSet::new()
             };
@@ -175,7 +173,6 @@ impl Malceiver {
         let indices_flat = batch_indices.into_iter().flatten().collect::<Vec<_>>();
         let permissions_flat = batch_permissions.into_iter().flatten().collect::<Vec<_>>();
 
-        let batch_size = apks.len() as u64;
         let opcodes = Tensor::new(&[batch_size, opcodes_max_len as u64]).with_values(&opcodes_flat).context("Can't create opcodes tensor")?;
         let indices = Tensor::new(&[batch_size, indices_max_len as u64 / 2, 2]).with_values(&indices_flat).context("Can't create indices tensor")?;
         let permissions = Tensor::new(&[batch_size, 50]).with_values(&permissions_flat).context("Can't create permissions tensor")?;
