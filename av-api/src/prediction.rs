@@ -1,12 +1,13 @@
 use anyhow::Context;
 use dexompiler::Apk;
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tensorflow::{Graph, SavedModelBundle, SessionOptions, SessionRunArgs, Tensor};
 
+use crate::models::{Detection, Prediction};
+
 const CAP: i32 = 512_000;
 
-const PERMS: &'static [&'static str] = &[
+const PERMS: &[&str] = &[
     "ACCESS_COARSE_LOCATION",
     "ACCESS_FINE_LOCATION",
     "ACCESS_LOCATION_EXTRA_COMMANDS",
@@ -59,58 +60,23 @@ const PERMS: &'static [&'static str] = &[
     "WRITE_SMS",
 ];
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Prediction {
-    #[serde(rename = "det")]
-    pub detection: Detection,
-    #[serde(rename = "proba")]
-    pub probability: f32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Detection {
-    Adware,
-    Banking,
-    Benign,
-    Riskware,
-    Sms,
-}
-
-impl TryFrom<usize> for Detection {
-    type Error = ();
-
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Detection::Adware),
-            1 => Ok(Detection::Banking),
-            2 => Ok(Detection::Benign),
-            3 => Ok(Detection::Riskware),
-            4 => Ok(Detection::Sms),
-            _ => Err(()),
-        }
-    }
-}
-
 pub struct Malceiver {
     graph: Graph,
     bundle: SavedModelBundle,
 }
 
 impl Malceiver {
-    pub fn new() -> Self {
+    pub fn new(model_path: &str) -> Self {
         let mut graph = Graph::new();
-        let bundle = SavedModelBundle::load(
-            &SessionOptions::new(), 
-            &["serve"], &mut graph, 
-            "model.pb"
-        )
-        .expect("Can't load saved model");
+        let bundle =
+            SavedModelBundle::load(&SessionOptions::new(), ["serve"], &mut graph, model_path)
+                .expect("Can't load saved model");
         Self { graph, bundle }
     }
 
     pub fn predict(&self, apks: &[Apk]) -> anyhow::Result<Vec<Prediction>> {
-        let signature = self.bundle
+        let signature = self
+            .bundle
             .meta_graph_def()
             .get_signature("serving_default")
             .unwrap();
@@ -119,16 +85,20 @@ impl Malceiver {
         let permissions_input_info = signature.get_input("permissions_in").unwrap();
         let output_info = signature.get_output("output_0").unwrap();
 
-        let opcode_sequence_in_op = self.graph
+        let opcode_sequence_in_op = self
+            .graph
             .operation_by_name_required(&opcode_sequence_input_info.name().name)
             .unwrap();
-        let method_indices_in_op = self.graph
+        let method_indices_in_op = self
+            .graph
             .operation_by_name_required(&method_indices_input_info.name().name)
             .unwrap();
-        let permissions_in_op = self.graph
+        let permissions_in_op = self
+            .graph
             .operation_by_name_required(&permissions_input_info.name().name)
             .unwrap();
-        let output_op = self.graph
+        let output_op = self
+            .graph
             .operation_by_name_required(&output_info.name().name)
             .unwrap();
         let batch_size = apks.len() as u64;
@@ -156,7 +126,12 @@ impl Malceiver {
             } else {
                 HashSet::new()
             };
-            batch_permissions.push(PERMS.iter().map(|&perm| apk_perms.contains(perm) as u8).collect::<Vec<_>>())
+            batch_permissions.push(
+                PERMS
+                    .iter()
+                    .map(|&perm| apk_perms.contains(perm) as u8)
+                    .collect::<Vec<_>>(),
+            )
         }
 
         let opcodes_max_len = batch_opcodes.iter().map(|v| v.len()).max().unwrap();
@@ -173,9 +148,15 @@ impl Malceiver {
         let indices_flat = batch_indices.into_iter().flatten().collect::<Vec<_>>();
         let permissions_flat = batch_permissions.into_iter().flatten().collect::<Vec<_>>();
 
-        let opcodes = Tensor::new(&[batch_size, opcodes_max_len as u64]).with_values(&opcodes_flat).context("Can't create opcodes tensor")?;
-        let indices = Tensor::new(&[batch_size, indices_max_len as u64 / 2, 2]).with_values(&indices_flat).context("Can't create indices tensor")?;
-        let permissions = Tensor::new(&[batch_size, 50]).with_values(&permissions_flat).context("Can't create permissions tensor")?;
+        let opcodes = Tensor::new(&[batch_size, opcodes_max_len as u64])
+            .with_values(&opcodes_flat)
+            .context("Can't create opcodes tensor")?;
+        let indices = Tensor::new(&[batch_size, indices_max_len as u64 / 2, 2])
+            .with_values(&indices_flat)
+            .context("Can't create indices tensor")?;
+        let permissions = Tensor::new(&[batch_size, 50])
+            .with_values(&permissions_flat)
+            .context("Can't create permissions tensor")?;
 
         let mut args = SessionRunArgs::new();
         args.add_feed(&opcode_sequence_in_op, 0, &opcodes);
@@ -183,16 +164,25 @@ impl Malceiver {
         args.add_feed(&permissions_in_op, 0, &permissions);
 
         let output_token = args.request_fetch(&output_op, 0);
-        self.bundle.session.run(&mut args).context("Can't run session")?;
+        self.bundle
+            .session
+            .run(&mut args)
+            .context("Can't run session")?;
         let out_res: Tensor<f32> = args.fetch(output_token).unwrap();
 
-        Ok(out_res.array_chunks::<5>().map(|chunk| {
-            let (idx, proba) = chunk.iter().enumerate().max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap()).unwrap();
-            Prediction {
-                detection: Detection::try_from(idx).unwrap(),
-                probability: *proba,
-            }
-        }).collect())
-
+        Ok(out_res
+            .array_chunks::<5>()
+            .map(|chunk| {
+                let (idx, proba) = chunk
+                    .iter()
+                    .enumerate()
+                    .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+                    .unwrap();
+                Prediction {
+                    detection: Detection::try_from(idx).unwrap(),
+                    probability: *proba,
+                }
+            })
+            .collect())
     }
 }

@@ -1,0 +1,48 @@
+services:
+  av-api:
+    image: av-api:latest
+    build:
+      context: .
+      dockerfile: av-api/Dockerfile
+    ports:
+      - 8000:8000
+    environment:
+      - MONGO_URI=mongodb://${MONGO_USR}:${MONGO_PWD}@mongo:27017
+    volumes:
+      - ./model.pb:/model.pb
+    networks:
+      - app-network
+
+  frontend:
+    image: frontend:latest
+    build: ./frontend
+    ports:
+      - 3000:3000
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USR}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PWD}
+    networks:
+      - app-network
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USR}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PWD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USR}:${MONGO_PWD}@mongo:27017/
+      ME_CONFIG_BASICAUTH: false
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
