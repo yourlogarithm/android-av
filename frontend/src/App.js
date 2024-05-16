@@ -5,12 +5,20 @@ const API = 'http://localhost:8000';
 
 const App = () => {
     const [files, setFiles] = useState([]);
+    const [fileMap, setFileMap] = useState({});
     const [results, setResults] = useState([]);
     const [hash, setHash] = useState('');
     const [error, setError] = useState('');
 
     const handleFileChange = (e) => {
-        setFiles([...e.target.files]);
+        const selectedFiles = [...e.target.files];
+        setFiles(selectedFiles);
+        // Create a map of filenames to empty SHA256 initially
+        const newFileMap = {};
+        selectedFiles.forEach(file => {
+            newFileMap[file.name] = '';
+        });
+        setFileMap(newFileMap);
     };
 
     const handleUpload = async () => {
@@ -31,6 +39,15 @@ const App = () => {
 
             const result = await response.json();
             if (result.success) {
+                // Update fileMap with SHA256 hashes
+                const updatedFileMap = { ...fileMap };
+                result.success.forEach(res => {
+                    const file = files.find(f => updatedFileMap[f.name] === '');
+                    if (file) {
+                        updatedFileMap[file.name] = res.sha256;
+                    }
+                });
+                setFileMap(updatedFileMap);
                 setResults(result.success);
             } else {
                 setError(result.error);
@@ -53,9 +70,9 @@ const App = () => {
             }
 
             const result = await response.json();
-            console.log(result);
             if (result.success) {
                 setResults([result.success]);  // Wrap single result in an array
+                setFileMap({});  // Clear fileMap for hash query
             } else {
                 setError(result.error);
             }
@@ -71,7 +88,7 @@ const App = () => {
             case 'benign':
                 return 'green';
             case 'riskware':
-                return 'yellow';
+                return 'orange';
             default:
                 return 'red';
         }
@@ -103,6 +120,9 @@ const App = () => {
                         {results.map((result, index) => (
                             <li key={index}>
                                 <div className="result">
+                                    {fileMap && Object.values(fileMap).includes(result.sha256) && (
+                                        <p><strong>Filename:</strong> {Object.keys(fileMap).find(key => fileMap[key] === result.sha256)}</p>
+                                    )}
                                     <p><strong>SHA256:</strong> {result.sha256}</p>
                                     <p style={{ color: getTextColor(result.prediction.det) }}>
                                         <strong>Detection:</strong> {capitalize(result.prediction.det)}
