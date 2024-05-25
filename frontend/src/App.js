@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import HashLoader from 'react-spinners/HashLoader';
 import './App.css';
 
 const API = 'http://localhost:8000';
@@ -9,11 +10,11 @@ const App = () => {
     const [results, setResults] = useState([]);
     const [hash, setHash] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleFileChange = (e) => {
         const selectedFiles = [...e.target.files];
         setFiles(selectedFiles);
-        // Create a map of filenames to empty SHA256 initially
         const newFileMap = {};
         selectedFiles.forEach(file => {
             newFileMap[file.name] = '';
@@ -27,6 +28,10 @@ const App = () => {
             formData.append(file.name, file);
         }
 
+        setLoading(true);
+        setResults([]);
+        setError('');
+
         try {
             const response = await fetch(`${API}/scan`, {
                 method: 'POST',
@@ -39,7 +44,6 @@ const App = () => {
 
             const result = await response.json();
             if (result.success) {
-                // Update fileMap with SHA256 hashes
                 const updatedFileMap = { ...fileMap };
                 result.success.forEach(res => {
                     const file = files.find(f => updatedFileMap[f.name] === '');
@@ -54,6 +58,8 @@ const App = () => {
             }
         } catch (err) {
             setError(err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -62,6 +68,10 @@ const App = () => {
     };
 
     const handleHashSubmit = async () => {
+        setLoading(true);
+        setResults([]);
+        setError('');
+
         try {
             const response = await fetch(`${API}/query/${hash}`);
 
@@ -71,13 +81,15 @@ const App = () => {
 
             const result = await response.json();
             if (result.success) {
-                setResults([result.success]);  // Wrap single result in an array
-                setFileMap({});  // Clear fileMap for hash query
+                setResults([result.success]);
+                setFileMap({});
             } else {
                 setError(result.error);
             }
         } catch (err) {
             setError(err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -101,7 +113,7 @@ const App = () => {
 
     return (
         <div className="container">
-            <h1>APK Scanner 9000</h1>
+            <h1>APK Scanner</h1>
             <div className="upload-section">
                 <h2>Upload Files for Scanning</h2>
                 <input type="file" multiple onChange={handleFileChange} />
@@ -112,6 +124,11 @@ const App = () => {
                 <input type="text" value={hash} onChange={handleHashChange} placeholder="Enter SHA-256 hash" />
                 <button onClick={handleHashSubmit}>Check</button>
             </div>
+            {loading && (
+                <div className="spinner-container">
+                    <HashLoader color="#3498db" />
+                </div>
+            )}
             {error && <p className="error">{error}</p>}
             {results.length > 0 && (
                 <div className="results-section">

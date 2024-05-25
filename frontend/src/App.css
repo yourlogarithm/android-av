@@ -80,3 +80,21 @@ li {
   padding: 10px;
   border-radius: 4px;
 }
+
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.error {
+  color: red;
+}
+
+.results-section {
+  margin-top: 20px;
+}
+
+.result {
+  margin-bottom: 10px;
+}
