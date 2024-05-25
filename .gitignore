@@ -1,2 +1,7 @@
 /target
 .env
+/docs/*
+!/docs/*.pdf
+!/docs/*.tex
+!/docs/*.bib
+!/docs/*.png
