@@ -5,3 +5,5 @@
 !/docs/*.tex
 !/docs/*.bib
 !/docs/*.png
+!/docs/*.sty
+!/docs/visuals

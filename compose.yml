@@ -10,16 +10,12 @@ services:
       - MONGO_URI=mongodb://${MONGO_USR}:${MONGO_PWD}@mongo:27017
     volumes:
       - ./model.pb:/model.pb
-    networks:
-      - app-network
 
   frontend:
     image: frontend:latest
     build: ./frontend
     ports:
       - 3000:3000
-    networks:
-      - app-network
 
   mongo:
     image: mongo
@@ -27,8 +23,6 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USR}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PWD}
-    networks:
-      - app-network
 
   mongo-express:
     image: mongo-express
@@ -40,9 +34,3 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PWD}
       ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USR}:${MONGO_PWD}@mongo:27017/
       ME_CONFIG_BASICAUTH: false
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge

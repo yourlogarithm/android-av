@@ -9,252 +9,530 @@
 \usepackage{subcaption}
 \usepackage{tocloft}
 \usepackage{titlesec}
-\usepackage[utf8]{inputenc}
-\usepackage{hyperref}
-\usepackage{url}
 \usepackage[numbers,super]{natbib}
-\usepackage{svg}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings-rust}
+\usepackage{listings-json}
+\usepackage[romanian]{babel}
+\usepackage[brazilian]{cleveref}
+\usepackage{float}
+\usepackage{verbatim}
 
-\renewcommand{\contentsname}{Cuprins}
-\renewcommand{\bibname}{Bibliografie}
+\lstset{language=Rust, style=colouredRust}
 
 \titleformat{\chapter}[hang]
   {\normalfont\huge\bfseries}{\thechapter.}{1em}{}
 
+\setlength{\cftbeforetoctitleskip}{-50pt}
+\titlespacing*{\chapter}{0pt}{-50pt}{10pt}
+
 \begin{document}
 
 \begin{titlepage}
-    \centering
-    \vspace*{1cm}
-    
-    \Huge
-    \textbf{Sistem Automat de Clasificare Malware Android}
-    
-    \vspace{0.5cm}
-    \LARGE
-    Lucrare de Licență
-    
-    \vspace{1.5cm}
-    
-    \textbf{Crețu Vlad-Sebastian}
-    
-    \vfill
-    
-    \Large
-    Coordonator: Dr. Ing. Aciu Răzvan
-    
-    \vspace{0.8cm}
-    
-    % \includegraphics[width=0.4\textwidth]{university_logo.png}
-    
-    Universitatea Politehnica Timișoara\\
-    Facultatea de Automatică și Calculatoare\\
-    2024
-    
+      \centering
+      \vspace*{1cm}
+
+      \Huge
+      \textbf{Sistem de Clasificare Malware Android}
+
+      \vspace{0.5cm}
+      \LARGE
+      Lucrare de Licență
+
+      \vspace{1.5cm}
+
+      \textbf{Crețu Vlad-Sebastian}
+
+      \vfill
+
+      \Large
+      Coordonator: Dr. Ing. Aciu Răzvan-Mihai
+
+      \vspace{0.8cm}
+
+      \includegraphics[width=0.4\textwidth]{visuals/university_logo.jpg}
+
+      Universitatea Politehnica Timișoara\\
+      Facultatea de Automatică și Calculatoare\\
+      2024
+
 \end{titlepage}
 
 \tableofcontents
-% \listoffigures
-% \listoftables
-% \lstlistoflistings
 
-% \chapter*{Lista Abrevierilor}
-% \addcontentsline{toc}{chapter}{Lista Abrevierilor}
-% \begin{tabular}{ll}
-%     API & Application Programming Interface \\
-%     ML & Machine Learning \\
-%     AV & Antivirus \\
-% \end{tabular}
 
 \chapter{Introducere}
-\section{Context}
-În prezent, sistemul de operare Android domină piața globală a dispozitivelor mobile, 
-având o cotă de piață de peste 70\% din totalul dispozitivelor vândute \cite{stat-counter}. 
-Numărul aplicațiilor Android disponibile pe Google Play, cel mai popular magazin online 
-pentru acest sistem, a ajuns la 3.718 milioane în 2023, cu o predicție de 4.200 milioane
-până în 2025 \cite{number-of-google-play-store-apps}. Această creștere va duce la 
-necesitatea unui sistem scalabil capabil să proceseze și să analizeze zilnic cantități 
-enorme de aplicații, pentru a asigura securitatea și confidențialitatea utilizatorilor platformei.
-\section{Motivație}
-Studiile disponibile se concentrează pe îmbunătățirea acurateței algoritmilor 
-de predicție automată a malware-ului, lăsând preprocesarea datelor pe un plan secundar. 
-Puține cercetări abordează în mod exhaustiv dezvoltarea unui sistem cap-coadă care să fie
-atât eficient, cât și scalabil. În contextul unei creșteri a numărului de aplicații 
-Android și a diversificării metodelor de atac, este esențial să se dezvolte soluții integrate 
-care să includă atât preprocesarea datelor, cât și analiza și clasificarea acestora. 
-Această lucrare își propune să umple acest gol, oferind un sistem complet care să poată 
-preprocesa eficient datele, să le analizeze și să le clasifice automat pentru a 
-evita atacurile malware.
-\section{Obiective}
-Lucrarea se concentrează pe dezvoltarea următoarelor obiective:
-\begin{enumerate}
-    \item Dezvoltarea unui sistem automat de clasificare multi-label a fișierelor APK\cite{apk-file-format-wiki} folosind 3 componente principale:
-    \begin{itemize}
-        \item Modul de preprocesare a datelor realizat folosind limbajul de programare Rust\cite{rustlang}, care se ocupă de extragerea permisiunilor și secvenței de cod din fișierele APK.
-        \item Model de clasificare bazat pe algoritmi de învățare automată realizat folosind librăria Tensorflow\cite{tensorflow}, care va clasifica fișierele APK în una din 5 categorii: \textit{Adware, Banking, Benign, Riskware, SMS}.
-        \item REST API realizat folosind framework-ul axum\cite{axum-framework} care va oferi o interfață programatică pentru a trimite fișiere APK spre clasificare și a primi rezultatele.
-    \end{itemize}
-    Vizualizarea predicțiilor se va face printr-o interfață web realizată folosind framework-ul React\cite{react}.
-    \item Afișarea rezultatelor experimentale și a statisticilor relevante pentru a evalua performanța sistemului.
-\end{enumerate}
-
-
+Lucrarea se concentrează pe dezvoltarea unui sistem de clasificare multi-label a fișierelor APK\cite{apk-file-format-wiki} folosind 5 componente principale:
+\begin{itemize}
+      \item Bibliotecă de preprocesare a datelor realizată folosind limbajul de programare Rust\cite{rustlang},
+            care se ocupă de extragerea permisiunilor și secvențelor de cod din fișierele APK.
+      \item Model machine-learning de clasificare realizat folosind biblioteca Tensorflow\cite{tensorflow2015-whitepaper},
+            care va clasifica fișierele APK în una din 5 categorii: \textit{Adware, Banking, Benign, Riskware, SMS}.
+      \item REST API realizat folosind framework-ul axum\cite{axum-framework},
+            care va oferi o interfață programatică pentru a trimite fișiere APK spre clasificare și a primi rezultatele.
+      \item Bază de date MongoDB\cite{mongodb} pentru stocarea/interogarea rezultatelor clasificării.
+      \item Aplicație web pentru interfațare manuală cu API-ul și vizualizarea predicțiilor, realizată folosind framework-ul React\cite{react}.
+\end{itemize}
+Utilizatorul final va putea trimite:
+\begin{itemize}
+      \item Unul sau mai multe fișiere APK către sistem și va primi înapoi predicțiile pentru fiecare fișier.
+      \item Un hash SHA256 al unui fișier APK și va primi înapoi predicția pentru acel fișier, cu condiția că fișierul a fost scanat anterior și salvat în baza de date.
+\end{itemize}
 \chapter{Analiza stadiului actual în domeniul problemei}
-\section{Clasificare malware}
-\section{Metode actuale de detectare}
+\section{VirusTotal}
+VirusTotal\cite{virustotal} este un serviciu web care analizează fișiere și URL-uri cu peste 70 de servicii de scanare third-party, tehnici de sanboxing și unelte de pattern-matching.
+Orice utilizator poate selecta un fișier sau un URL de pe dispozitivul său și să-l trimită la VirusTotal pentru investigație.
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/virustotal.png}
+      \caption{Procesul de scanare a unui fișier cu VirusTotal}
+      \label{fig:vt_scan}
+\end{figure}
+\section{Hybrid Analysis}
+Hybrid Analysis\cite{hybridanalysis} este un serviciu gratuit de analiză malware.
+Utilizând acest serviciu, utilizatorii pot trimite fișiere pentru o analiză statică și dinamică detaliată.
+Sistemul de analiză implicit suportă fișiere executabile, office, pdf, apk, jar și altele.
+Acesta folosește analiză statică, analiză dinamică prin sandboxing și rezultatele antivirusului MetaDefender\cite{metadefener}.
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/hybrid_analysis.png}
+      \caption{Rezultatele analizei unui fișier cu Hybrid Analysis}
+      \label{fig:hybrid_analysis_result}
+\end{figure}
+\section{Jotti's Malware Scan}
+Jotti's Malware Scan\cite{jotti} este un serviciu similar celor de mai sus,
+care permite scanarea folosind produsele a 14 vendori populari de antiviruși, și căutarea rezultatelor scanarării fișierelor după hash.
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/jotti.png}
+      \caption{Rezultatele analizei unui fișier cu Jotti's Malware Scan}
+      \label{fig:jotti_result}
+\end{figure}
+\section{Comparație}
+În \cref{tab:comparare_servicii} sunt comparate caracteristicile de analiză statică și căutare a serviciilor menționate anterior.
+Pentru referință vor fi folosite următoarele:
+\begin{enumerate}
+      \item \textbf{Scanare proprie} - Algoritm propriu pentru analiză statică a fișierelor APK și nu doar grupare a rezultatelor vendorilor third-party.
+      \item \textbf{Durată} - Durata medie de analiză a unui fișier APK în secunde. Metrica a fost măsurată folosind 5 fișiere scanate consecutiv de 3 ori.
+      \item \textbf{Căutare hash} - Căutăre a rezultatelor scanării unui fișier după hash.
+      \item \textbf{Căutare conținut} - Oferă posibilitatea interogării daca o secvență de octeți se consideră malware.
+\end{enumerate}
+\begin{table}[ht]
+      \centering
+      \begin{tabular}{lcccc}
+            \toprule
+            Caracteristică   & Serviciul meu & VirusTotal   & Hybrid Analysis & Jotti's Malware Scan \\
+            \midrule
+            Scanare proprie  & $\checkmark$  & -            & $\checkmark$    & -                    \\
+            Durată           & 3.3           & 86.2         & 62.4            & 19.1                 \\
+            Căutare hash     & $\checkmark$  & $\checkmark$ & $\checkmark$    & $\checkmark$         \\
+            Căutare conținut & -             & -            & $\checkmark$    & -                    \\
+            \bottomrule
+      \end{tabular}
+      \caption{Compararea caracteristicilor de analiză statică și căutare a serviciilor}
+      \label{tab:comparare_servicii}
+\end{table}
 
 \chapter{Fundamentare teoretică}
-
-\section{Sistemul Android}
-Android este un sistem de operare open source complet cu cod sursă personalizabil 
-care poate fi portat pe aproape orice dispozitiv, și cu documentație publică disponibilă 
+\section{Android}
+Android este un sistem de operare open source complet cu cod sursă personalizabil
+care poate fi portat pe aproape orice dispozitiv, și cu documentație publică disponibilă
 pentru toată lumea la \textit{source.android.com} pentru dispozitive mobile, condus de Google\cite{android-source}.
-Platforma Open System Android (AOSP) este un cod sursă Android disponibil public și modificabil. 
-Oricine poate descărca și modifica AOSP pentru dispozitivul său. 
-AOSP oferă o implementare completă și funcțională a platformei mobile Android care constituie următoarea stivă de software\cite{android-architecture} (Figura \ref{fig:android_stack}):
-\begin{enumerate}
-    \item \textbf{API-ul Android} - API de nivel înalt public pentru dezvoltarea aplicațiilor third-party
-    \item \textbf{Android Framework} - Un set de classe și interfețe Java precompilate care oferă funcționalități de bază pentru dezvoltarea aplicațiilor.
-    O parte din framework este accesibilă prin Android API, pe când cealaltă este accesibilă doar prin API-ul sistemului.
-    \item \textbf{Aplicații Android} - Aplicații preinstalate sau third-party create folosind Android API.
-    \item \textbf{Aplicațiile Producătorului Dispozitivului} - Aplicație create folosind o combinație de API-ul Android, 
-    API-ul sistemului și accesul direct la implementarea Android Framework. 
-    Deoarece un producător de dispozitive ar putea accesa direct API-uri instabile din cadrul framework-ului, 
-    aceste aplicații trebuie să fie preinstalate pe dispozitiv și pot fi actualizate doar atunci când software-ul sistemului 
-    dispozitivului este actualizat.
-    \item \textbf{Aplicații Privilegiate} - Aplicații care au acces la API-ul sistemului și care sunt preinstalate pe dispozitiv.
-    \item \textbf{Servicii de Sistem} - Componnete modulare care oferă acces la hardware-ul dispozitivului.
-    \item \textbf{API-ul Sistemului} - API-ul care oferă acces la serviciile de sistem. 
-    Accesibile doar pentru producătorii originali de echipament (OEMs) și marcat cu \textit{@SystemApi} în codul sursă.
-    \item \textbf{Android Runtime} - Un mediu de execuție Java care realizează executarea formatului \textbf{Dalvik Executable} (DEX) 
-    prin traducrea bytecode-ului aplicației în instrucțiuni specifice procesorului.
-    \item \textbf{Hardware Abstraction Layer (HAL)} - Un strat de abstractizare cu o interfață standard implementată de producătorii de hardware, 
-    care permite ca sistemul Android să fie agnostic în privința implementărilor driverelor low-level. Utilizarea unui HAL permite implementarea 
-    funcționalităților fără a afecta sau modifica sistemul high-level.
-    \item \textbf{Servicii de Sistem \& Daemons} - Daemon-uri native cum ar fi: \textit{init, health, logd, logd, storaged} 
-    și librării native cum ar fi: \textit{libc, liblog, libutils, libbinder, libselinux}
-    care interacționează direct cu kernelul și nu depind de HAL.
-    \item \textbf{Kernel Linux} - Partea centrală a sistemului de oprare care comunică cu hardware-ul dispozitivului.
-    Kernel-ul AOSP este impărțit în module hardware-agnostice și module specifice pentru furnizor.
-\end{enumerate}
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.8\textwidth]{android_stack.png}
-    \caption{AOSP software stack architecture \cite{android-architecture}}
-    \label{fig:android_stack}
+Platforma Open System Android (AOSP) este un cod sursă Android disponibil public și modificabil.
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/android_stack.png}
+      \caption{AOSP software stack architecture \cite{android-architecture}}
+      \label{fig:android_stack}
 \end{figure}
-\section{Aplicații}
-Aplicațiile Android pot fi scrise folosind Kotlin, limbajul de programare Java și limbajele C++. 
+\subsection{Aplicații}
+Aplicațiile Android pot fi scrise folosind Kotlin, limbajul de programare Java și limbajele C++.
 Instrumentele SDK Android compilează codul împreună cu orice fișiere de date și resurse într-un APK sau un Android App Bundle.\cite{android-application-fundamentals}
 
-Un pachet Android, care este un fișier de arhivă cu extensia \textit{.apk}, 
+Un pachet Android, care este un fișier de arhivă cu extensia \textit{.apk},
 conține fișierele unei aplicații Android necesare la rulare și este fișierul pe care dispozitivele cu Android îl folosesc pentru a instala aplicația.\cite{android-application-fundamentals}
 
-Un Android App Bundle, care este un fișier de arhivă cu extensia \textit{.aab}, 
-conține fișierele unui proiect de aplicație Android, inclusiv unele metadate suplimentare care nu sunt necesare la rulare. 
-Un AAB este un format de publicare și nu poate fi instalat pe dispozitivele Android. 
-Generarea și semnarea APK-ului sunt amânate pentru o etapă ulterioară.\cite{android-application-fundamentals}
-
-Fiecare aplicație Android funcționează într-un sandbox de securitate propriu, protejat de următoarele caracteristici de securitate ale Android\cite{android-application-fundamentals}:
-\begin{itemize}
-    \item Sistemul de operare Android este un sistem Linux multi-utilizator în care fiecare aplicație este un utilizator diferit.
-    \item În mod implicit, sistemul atribuie fiecărei aplicații un ID unic de utilizator Linux, care este utilizat doar de sistem și este necunoscut aplicației. Sistemul setează permisiuni pentru toate fișierele dintr-o aplicație astfel încât doar ID-ul de utilizator atribuit acelei aplicații să le poată accesa.
-    \item Fiecare proces are propria sa mașină virtuală (VM), astfel încât codul unei aplicații rulează izolat de alte aplicații.
-    \item În mod implicit, fiecare aplicație rulează în propriul proces Linux. Sistemul Android pornește procesul atunci când oricare dintre componentele aplicației trebuie să fie executate și închide procesul atunci când nu mai este necesar sau când sistemul trebuie să recupereze memorie pentru alte aplicații.
-\end{itemize}
-
-Sistemul Android implementează principiul privilegiului minim (\textit{principle of least privilege}). 
-Adică, fiecare aplicație, în mod implicit, are acces doar la componentele de care are nevoie pentru a-și îndeplini funcțiile și nimic mai mult. 
-Acest lucru creează un mediu foarte sigur în care o aplicație nu poate accesa părți ale sistemului pentru care nu i s-au acordat permisiuni.\cite{android-application-fundamentals}
-
-Cu toate acestea, există modalități prin care o aplicație poate partaja date cu alte aplicații și prin care o aplicație poate accesa servicii de sistem\cite{android-application-fundamentals}:
-\begin{itemize}
-    \item Este posibil să se aranjeze ca două aplicații să partajeze același ID de utilizator Linux, caz în care acestea pot accesa fișierele uneia alteia. Pentru a conserva resursele sistemului, aplicațiile cu același ID de utilizator pot, de asemenea, să aranjeze să ruleze în același proces Linux și să partajeze aceeași mașină virtuală (VM). Aplicațiile trebuie, de asemenea, să fie semnate cu același certificat.
-    \item O aplicație poate solicita permisiunea de a accesa datele dispozitivului, cum ar fi locația dispozitivului, camera și conexiunea Bluetooth. Utilizatorul trebuie să acorde explicit aceste permisiuni.
-\end{itemize}
-
 \subsection{Permisiuni}
-Permisiunile aplicațiilor ajută la protejarea confidențialității utilizatorilor\cite{android-permissions} prin restricționarea accesului la următoarele:
+Permisiunile aplicațiilor ajută la protejarea confidențialității utilizatorilor prin restricționarea accesului la următoarele:
 \begin{itemize}
-    \item Date restricționate, cum ar fi starea sistemului și informațiile de contact ale utilizatorilor
-    \item Acțiuni restricționate, cum ar fi conectarea la un dispozitiv împerecheat și înregistrarea audio
+      \item Date restricționate, cum ar fi starea sistemului și informațiile de contact ale utilizatorilor
+      \item Acțiuni restricționate, cum ar fi conectarea la un dispozitiv împerecheat și înregistrarea audio
 \end{itemize}
 
-Tipul fiecărei permisiuni indică domeniul datelor restricționate la care aplicația ta poate avea acces și domeniul acțiunilor restricționate 
-pe care aplicația ta le poate efectua atunci când sistemul acordă permisiunea respectivei aplicații.\cite{android-permissions}
-Android categorizează permisiunile în diferite tipuri:
-
-\begin{itemize}
-    \item \textbf{Install-time} - Oferă aplicației acces limitat la date restricționate sau permit să efectueze acțiuni restricționate care afectează minim sistemul sau alte aplicații.\cite{android-permissions} 
-    
-    Android include două subtipuri de permisiuni la instalare:
-    \begin{itemize}
-        \item \textbf{Normale} - Aceste permisiuni permit accesul la date și acțiuni care depășesc sandbox-ul aplicației tale, 
-        dar prezintă foarte puțin risc pentru confidențialitatea utilizatorului și funcționarea altor aplicații.\cite{android-permissions}
-        \item \textbf{Semnatură (Signature)} - Sistemul acordă o permisiune de semnătură unei aplicații numai atunci când 
-        aplicația este semnată cu același certificat ca aplicația sau sistemul de operare care definește permisiunea.\cite{android-permissions}
-        
-        Aplicațiile care implementează servicii privilegiate, cum ar fi serviciile de completare automată sau VPN, folosesc, de asemenea, permisiuni de semnătură, 
-        necesare pentru legarea serviciilor, astfel încât numai sistemul să se poată lega la servicii.\cite{android-permissions}
-    \end{itemize}
-    \item \textbf{Runtime} - Cunoscute sub numele de permisiuni periculoase, 
-    oferă aplicației tale acces suplimentar la date restricționate sau îi permit să efectueze acțiuni restricționate 
-    care afectează mai substanțial sistemul și alte aplicații.\cite{android-permissions}
-
-    Multe permisiuni de rulare accesează date private ale utilizatorilor, un tip special de date restricționate care include informații potențial sensibile. 
-    Exemple de date private ale utilizatorilor includ locația și informațiile de contact.\cite{android-permissions}
-
-    \item \textbf{Speciale} - Permisiunile speciale corespund unor operațiuni particulare ale aplicațiilor.
-    Doar platforma și producătorii originali de echipamente (OEM) pot defini permisiuni speciale. 
-    În plus, platforma și producătorii originali de echipamente definesc de obicei permisiuni speciale 
-    atunci când doresc să protejeze accesul la acțiuni deosebit de puternice, cum ar fi afișarea unui UI peste alte aplicații.\cite{android-permissions}
-\end{itemize}
-
-\subsection{Componente}
-Componentele aplicației sunt blocurile esențiale ale unei aplicații Android, 
-care reprezintă puncte de intrare prin care sistemul sau un utilizator poate accesa aplicația.\cite{android-application-fundamentals}
-
-Există patru tipuri de componente care pot fi folosite într-o aplicație Android:
-\begin{itemize}
-    \item \textbf{Activități} - un punct de intrare pentru interacțiunea cu utilizatorul. Reprezintă o singură fereastră cu o interfață de utilizator.\cite{android-application-fundamentals}
-    \item \textbf{Servicii} - un punct de intrare general pentru menținerea aplicației în fundal din diverse motive. 
-    Este o componentă care rulează în fundal pentru a efectua operațiuni de lungă durată sau pentru a efectua sarcini pentru procesele la distanță. 
-    Un serviciu nu furnizează o interfață de utilizator.\cite{android-application-fundamentals}
-    \item \textbf{Receptoare de difuzare (Broadcast Receivers)} - o componentă care permite sistemului să livreze evenimente aplicației în afara unui flux normal de utilizator, 
-    astfel încât aplicația să poată răspunde anunțurilor de difuzare la nivel de sistem. 
-    Deoarece receptoarele de difuzare sunt un alt punct de intrare bine definit în aplicație, 
-    sistemul poate livra difuzări chiar și aplicațiilor care nu rulează în prezent.\cite{android-application-fundamentals}
-    \item \textbf{Furnizori de conținut (Content Providers)} - o componentă care gestionează un set partajat de date ale aplicației pe care le poți stoca în sistemul de fișiere, 
-    într-o bază de date SQLite, pe web sau în orice alt loc de stocare persistentă accesibil aplicației tale. 
-    Prin intermediul furnizorului de conținut, alte aplicații pot interoga sau modifica datele, dacă furnizorul de conținut permite acest lucru.\cite{android-application-fundamentals}
-\end{itemize}
+Tipul fiecărei permisiuni indică domeniul datelor restricționate la care aplicația poate avea acces și domeniul acțiunilor restricționate
+pe care aceasta poate efectua atunci când sistemul este acordată.\cite{android-permissions}
 
 \subsection{Fișierul manifest}
-Înainte ca sistemul Android să poată porni o componentă a aplicației, sistemul trebuie să știe că acea componentă există citind fișierul manifest al aplicației, 
-\textit{AndroidManifest.xml}. Aplicația declară toate componentele sale în acest fișier, care se află la rădăcina directorului proiectului aplicației.\cite{android-application-fundamentals}
+Înainte ca sistemul Android să poată porni o componentă a aplicației, acesta trebuie să știe că acea componentă există citind fișierul manifest al aplicației,
+\textit{AndroidManifest.xml}. Aplicația declară toate componentele și orice permisiuni de de care are nevoie,
+cum ar fi accesul la internet sau accesul de citire la contactele utilizatorului sale în acest fișier,
+care se află la rădăcina directorului proiectului aplicației.\cite{android-application-fundamentals}
 
-Pe lângă aceasta, fișierul manifest răspunde de următoarele:
+\subsection{Android Runtime și Dalvik}
+Android runtime (ART) este mediul de execuție utilizat de aplicații și unele servicii de sistem pe Android.
+Acestea execută formatul Dalvik executable (DEX) și specificația bytecode DEX.\cite{android-runtime}
+
+Dalvik Executable este un format de fișier binar care conține codul executabil al programului Android.
+Acesta este bazat pe regiștri și poate fi ușor decompilat pentru a parcurge instrucțiunile fiecărei metode din fiecare clasă a aplicației.
+Instrucțiunile constituie o secvență între 2 și 10 octeți, fiecare conține câte un opcode (primul octet) și un număr variabil de argumente fie regiștri, constante sau indecși din tabelele de identificatori.
+
+\section{Rust}
+Rust\cite{rustlang} este un limbaj de programare axat pe siguranță, viteză și concurență, extrem de rapid și eficient din punct de vedere al memoriei care se potrivește pentru servicii unde performanța este un factor critic.
+
+Sistemul de tipuri bogat al limbajului și modelul de ownership garantează siguranța memoriei și a firelor de execuție — permițând eliminarea multor clase de erori în timpul compilării.
+
+\section{Tensorflow}
+Tensorflow\cite{tensorflow2015-whitepaper} este o bibliotecă open-source de \textit{machine learning} dezvoltată de echipa Google Brain,
+care oferă un set larg de instrumente high-level pentru construirea, antrenarea și inferența modelelor de inteligență artificială.
+Acesta este implementant în limbajul C++ și oferă API-uri pentru diferite limbaje cum ar fi Python și Javascript.
+
+\section{Axum}
+Axum\cite{axum-framework} este un framework pentru aplicații web care se concentrează pe ergonomie și modularitate.
+Acesta permite dezvoltarea rapidă a REST-API-urilor folosind un model de programare asincron, bazat pe următoarele caracteristici cheie:
 \begin{itemize}
-    \item Identifică orice permisiuni de utilizator de care are nevoie aplicația, cum ar fi accesul la internet sau accesul de citire la contactele utilizatorului.
-    \item Declară nivelul minim al API-ului necesar aplicației, în funcție de API-urile pe care le folosește aplicația.
-    \item Declară caracteristicile hardware și software utilizate sau necesare aplicației, cum ar fi o cameră, servicii Bluetooth sau un ecran multitouch.
-    \item Declară bibliotecile API de care aplicația are nevoie pentru a fi legate (altele decât API-urile framework-ului Android).
+      \item Redirecționarea cererilor HTTP către handlere cu un API fără macro-instrucțiuni.
+      \item Parsarea declarativă a cererilor folosind extractori.
+      \item Model simplu și previzibil de gestionare a erorilor.
+      \item Generarea răspunsurilor fără cod reduntant.
 \end{itemize}
 
-\section{Android Runtime și Dalvik}
-\subsection{Bytecode-ul Dalvik}
-\subsection{Formatul DEX}
-\subsection{Instrucțiunile Dalvik Executable}
 
-\chapter{Soluţia propusă şi metodologia de proiectare/dezvoltare}
-\section{Arhitectura sistemului}
-\section{Descrierea metodologiei}
+\section{React}
+React\cite{react} este o bibliotecă JavaScript pentru construirea interfețelor de utilizator. Avantajele bibliotecii sunt:
+\begin{itemize}
+      \item Paradigmă declarativă care face ușoară crearea de UI-uri interactive, iar codul să fie mai predictibil și mai ușor de înțeles.
+      \item Componente reutilizabile care permit definirea unei componente și utilizarea acesteia oriunde în aplicație.
+\end{itemize}
+
+
+\section{MongoDB}
+MongoDB\cite{mongodb} este o bază de date NoSQL orientată pe documente cu o serie de avantaje:
+\begin{itemize}
+      \item Structura flexibilă a documentelor.
+      \item Interogare simplă a datelor.
+      \item Framework de agregare robust.
+      \item Scalare orizontală.
+\end{itemize}
+
+Documentele sunt structurate într-un format similar JSON numit BSON (Binary JSON),
+care reprezintă o serializare binară a documentelor, cu anumite extensii care permit utilizarea unor structuri de date mai complexe
+cum ar fi date calendaristice.
+
+MongoDB este o alegere populară pentru aplicații cu potențial de scalabiliate și volatilitate a datelor.
+
+
+\chapter{Soluția propusă}
+
 
 \chapter{Implementare}
-\section{Tehnologii utilizate}
-\section{Descrierea implementării}
+În acest capitol sunt prezentate detaliile de implementare ale tuturor unităților sistemului.
 
-\chapter{Utilizare, rezultate experimentale}
+\section{Frontend}
+Interfața web este entry-point-ul pentru utilizatorii aplicației.
+Elaborată folosind framework-ul React\cite{react}, aceasta conține:
+\begin{itemize}
+      \item Câmp pentru încărcare fișiere
+      \item Buton upload fișiere
+      \item Câmp pentru introducere hash SHA-256
+      \item Buton pentru verificare hash
+\end{itemize}
+După trimiterea fișierelor către backend, interfața va iniția animația unui spinner de încărcare
+până când nu e primit răspunsul de la server.
+Răspunsul va fi afișat sub forma unei liste cartonașe care conțin:
+\begin{itemize}
+      \item Numele fișierului
+      \item Hash-ul SHA-256
+      \item Categorie prezisă
+      \item Probabilitatea categoriei
+\end{itemize}
+
+Aceeași procedură va fi inițiată în urma trimiterii unui hash, răspunsul de la server fiind similar.
+
+\section{REST API}
+API-ul backend este realizat folosind framework-ul axum\cite{axum-framework}.
+Este un API asincron care oferă următoarele rute:
+\begin{itemize}
+      \item \texttt{POST /scan} - Acceptă unul sau mai multe fișiere APK și returnează predicțiile în formatul JSON ca în \cref{fig:api_response}
+      \item \texttt{GET /query/:hash} - Returnează predicția pentru un fișier APK după hash-ul SHA256, răspunsul e similar cu cel de la \texttt{POST /scan} doar că pentru un singur fișier.
+\end{itemize}
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/api_response.png}
+      \caption{Exemplu de răspuns al API-ului}
+      \label{fig:api_response}
+\end{figure}
+
+\subsection{Scanare}
+În momentul încărcării fișierelor, 
+se va face o prefiltrare pentru a lăsa doar fișierele al cărui conținut începe 
+cu \texttt{b"PK"} (începutul headerului unui fișier ZIP),
+pentru a preveni încercarea de a scana fișiere ce nu sunt APK-uri.
+
+Înainte de scanare se calculează hash-ul SHA256 și se caută în baza de date MongoDB\cite{mongodb}.
+Dacă fișierul a fost scanat anterior, se va returna rezultatul salvat în baza de date.
+În caz contrar se va face predicția pe fișier folosind biblioteca de extragere a datelor
+și modelul încărcat folosind binding-urile Tensorflow pentru Rust. 
+Rezultatele scanării sunt salvate în baza de date pentru a fi folosite ulterior,
+iar răspunsul este trimis înapoi către client.
+
+În caz că se încarcă mai multe fișiere odată, procesul va fi optimizat să facă căutare în
+baza de date cu mai multe hash-uri odată, iar extragerea de date va fi paralelizată folosind
+biblioteca \textit{rayon}\cite{rayon} care facilitează conversia calculelor 
+secvențiale în calcule paralele, printr-un API simplu și intuitiv. Scanarea va fi aplicată
+doar fișierelor care nu au fost găsite în baza de date.
+
+
+\section{Extragere de date}
+Biblioteca de extragere a datelor realizată în cadrul lucrării expune funcția:
+\begin{lstlisting}[language=Rust]
+parse<R: Read + Seek>(apk: R) -> Result<Apk, ApkParseError>
+\end{lstlisting}
+Aceasta acceptă un buffer de memorie care reprezintă arhiva APK și returnează un rezultat
+care conține structura de date \textit{Apk} (\cref{fig:apk_struct}) sau o eroare de parsare \textit{ApkParseError}.
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/structs.png}
+      \caption{Structura de date Apk}
+      \label{fig:apk_struct}
+\end{figure}
+
+În momentul apelării, se vor parcurge fișierele din arhivă pentru a găsi:
+\begin{enumerate}
+      \item Fișierul \textit{AndroidManifest.xml} al aplicației care declară componentele și permisiunile necesare.
+      \item Orice fișier binar al cărui header corespunde cu \texttt{DEX\_FILE\_MAGIC}\cite{dex-format},
+            fiind considerat un fișier Dalvik Executable cu cod al aplicației.
+\end{enumerate}
+
+\subsection{Componente și permisiuni}
+Întrucât fișierul \textit{AndroidManifest.xml} din cadrul arhivei nu este un fișier XML standard,
+ci o reprezentare serializată binar a documentului, se folosește biblioteca \textit{abxmldecoder}\cite{abxmldecoder}
+pentru parcurgerea node-urilor și parsarea informației utile.
+
+Componentele și denumirea pachetului sunt salvate pentru a fi folosite ulterior în sortarea metodelor din fișierele DEX. Există 4 tipuri de componente:
+\begin{itemize}
+      \item Activități - Interfețe grafice cu care utilizatorul interacționează.
+      \item Servicii - Rulează în fundal și nu au interfață grafică.
+      \item Receivers - Răspund la anumite evenimente cum ar fi primirea unui SMS.
+      \item Providers - Oferă acces la datele aplicației.
+\end{itemize}
+
+Permisiunile sunt extrase din nodurile \textit{uses-permission} și salvate într-un \textit{HashSet$<$String$>$}.
+
+\subsection{Bytecode}
+Un APK poate avea mai multe fișiere DEX, de obicei se găsesc în directorul root al arhivei și sunt denumite \textit{classes.dex}, \textit{classes2.dex}, etc.
+Dat fiind faptul că aceasta este doar o convenție de denumire, un atacator poate liber ascunde cod executabil în alte directoare sau sub alt nume,
+de aceea sunt parcurse și verificate cu o expresie regulată \texttt{b"6465780A3033[35-39]00"} (Validează versiunile 35-39) header-ele tuturor fișierelor din arhivă.
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/method_extraction.png}
+      \caption{Algoritmul de parsare a metodelor (Abstractizat)}
+      \label{fig:bytecode_parsing}
+\end{figure}
+
+Conform algoritmului, sunt parcurse toate metodele din fișierele DEX pentru a se construi un Control Flow Graph.
+Graph-ul este aplatizat și sortat în așa manieră ca metodele din clasele declarate ca componente în Manifest să fie parcurse primele:
+\begin{enumerate}
+      \item \textbf{Major Order} - Clasa este declarată în AndroidManifest.xml ca componentă
+      \item \textbf{Minor Order} - Signatura metodei, ex. \texttt{Lcom/test/MAct;->v(I;)V}
+\end{enumerate}
+
+După această sortare graph-ul este reparcurs folosind Depth-First Search\cite{depth-first-search}
+pentru a se construi vectorul de metode normalizat utilizat* la clasificare, similar cu cel din \cref{fig:f-droid-json}.
+Codul sursă este scris în Rust pentru a beneficia de performanța și siguranța limbajului,
+iar în scopuri demonstrative este o inclusă o versiune abstractizată a algoritmului de procesare DEX (\cref{fig:bytecode_parsing}).
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/methods_json.png}
+      \caption{Exemplu de secvență de metode extrasă din aplicația F-Droid\cite{f-droid} (JSON)}
+      \label{fig:f-droid-json}
+\end{figure}
+
+\subsection{Preprocesare}
+Dat fiind faptul că biblioteca de extragere a datelor returnează o instanță a structurii \textit{Apk},
+și modelele machine learning nu înțeleg structuri de date complexe,
+este necesară transformarea \textit{Apk}-ului într-un input care poate fi folosit de model.
+Această parte nu este implementată în bibliotecă, ci este un modul separat din aplicația web.
+
+Modelul nu poate accepta set-ul de permisiuni ca un array de string-uri.
+Acesta este convertit într-un vector binar de dimensiunea 50,
+unde fiecare poziție înseamnă prezența sau absența unei permisiuni în \textit{AndroidManifest.xml}:
+\begin{itemize}
+      \item 1 - Permisiunea este declarată
+      \item 0 - Permisiunea nu este declarată
+\end{itemize}
+Aplicațiile Android pot declara sute de permisiuni, dar în practică unele permisiuni sunt foarte rar întâlnite și nu sunt relevante.
+Pentru eliminarea permisiunilor redundante a fost folosit un clasificator Random Forest\cite{breiman2001random}\cite{Khariwal2021}.
+Setul total de 368 de permisiuni întâlnite în dataset, a fost redus, folosind codul Python din \cref{fig:rf_train}, la 50 de permisiuni cele mai relevante (\cref{fig:top50}), top 5 fiind:
+\begin{enumerate}
+      \item \texttt{SEND\_SMS} - Permite trimiterea mesajelor SMS.
+      \item \texttt{RECEIVE\_SMS} - Permite citirea mesajelor SMS.
+      \item \texttt{MOUNT\_UNMOUNT\_FILESYSTEMS} - Permite montarea și demontarea sistemului de fișiere.
+      \item \texttt{READ\_PHONE\_STATE} - Permite accesul (read-only) la starea telefonului, inclusiv la informațiile actuale ale rețelei celulare, la starea oricăror apeluri în curs și la o listă a oricăror conturi de telefon înregistrate pe dispozitiv.
+      \item \texttt{ACCESS\_WIFI\_STATE} - Permite accesarea informațiilor despre rețelele Wi-Fi.
+\end{enumerate}
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/rf_train.png}
+      \caption{Selectarea celor mai importante 50 de permisiuni}
+      \label{fig:rf_train}
+\end{figure}
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/top50.png}
+      \caption{Top 50 cele mai importante permisiuni}
+      \label{fig:top50}
+\end{figure}
+
+La fel ca și cu permisiunile, metodele nu pot fi transmise direct. Vectorul de metode este convertit în doi vectori separați:
+\begin{itemize}
+      \item \textbf{Opcode Vector} - Secvența de opcode-uri concatenată a tuturor metodelor.
+      \item \textbf{Indices Vector} - Vector de indici [start, end] care delimitează metodele în \textbf{Opcode Vector}.
+\end{itemize}
+Pe lângă aceasta mai e de menționat că vectorii vor fi truncați astfel încât ultimul index de start de metodă
+să fie sub valoarea 512000 (\cref{fig:cap}) pentru a preveni supraîncărcarea memoriei.
+\begin{figure}
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/cap.png}
+      \caption{Truncarea secvenței bytecode pentru un APK}
+      \label{fig:cap}
+\end{figure}
+
+Astfel vom avea un vector de dimensiune fixă 50 cu valori 0, 1 pentru permisiuni
+și doi vectori de dimensiune variabilă pentru bytecode-ul aplicației.
+
+\subsection{Testare}
+Pentru asigurarea corectitudinii parsării APK-urilor, a fost elaborată o suită de teste unitare
+folosind biblioteca standard din Rust.
+În total au fost scrie 10 teste unitare:
+\begin{enumerate}
+      \item \verb|dex::instruction::tests::test_empty_bytecode|
+      \item \verb|dex::instruction::tests::test_bad_opcode|
+      \item \verb|dex::instruction::tests::test_invoke_args|
+      \item \verb|dex::instruction::tests::test_too_short|
+      \item \verb|dex::instruction::tests::test_valid_opcode|
+      \item \verb|dex::tests::test_hello_world|
+      \item \verb|dex::tests::test_call_graph|
+      \item \verb|manifest::tests::test_parse_a|
+      \item \verb|manifest::tests::test_parse_b|
+      \item \verb|manifest::tests::test_parse_c|
+\end{enumerate}
+
+Testele 1-5 asigură corectitudinea parsării instrucțiunilor individuale din cadrul unei secvențe de octeți.
+
+Testele 6-7 verifică ordinea și integritatea metodelor extrase din fișiere DEX.
+Fișierele DEX au fost generate manual prin compilarea de cod Java 
+și conversia rezultatului binar în format DEX folosind instrumentul de linie de comandă \textit{d8}\cite{d8}.
+
+Testele 8-10 asigură corectitudinea parsării componentelor și permisiunilor din fișiere \textit{AndroidManifest.xml}.
+Fișierele au fost obținute prin build-area manuală a unor proiecte Android simple pentru a obține fișiere .apk,
+care au fost dezarhivate pentru a extrage \textit{AndroidManifest.xml} în formatul lor binar.
+
+\section{Clasificare}
+\subsection{Dataset}
+În cadrul acestei lucrări, a fost folosit datasetul CICMalDroid 2020 \cite{cicmaldroid0, cicmaldroid1} pentru antrenarea și testarea modelului.
+Setul de date conține 17341 de aplicații Android colectate în perioada Decembrie 2017 - Decembrie 2018 din cinci categorii:
+\begin{itemize}
+      \item \textbf{Adware} - Afișează material publicitar nesolicitat.
+      \item \textbf{Banking} - Obține acces la conturile bancare online ale utilizatorului,
+            imitând aplicațiile bancare originale sau interfața web bancară.
+            Majoritatea sunt concepute pentru a se infiltra în dispozitive și fura detalii sensibile,
+            de exemplu, loginul și parola contului bancar și pentru a trimite informațiile
+            furate către un server de comandă și control (C\&C).
+      \item \textbf{SMS} - Exploatează serviciul SMS, pentru a trimite sau intercepta mesaje cu scopul
+            răspândirii virusului și exfiltrării datelor.
+      \item \textbf{Riskware} - Pot cauza daune dacă utilizatorii rău intenționați le exploatează.
+            Se poate transforma în orice altă formă de malware, cum ar fi Adware sau Ransomware,
+            care extinde funcționalitățile instalând aplicații nou infectate.
+      \item \textbf{Benign} - Aplicații care nu sunt rău intenționate.
+\end{itemize}
+După preprocesare, doar 16457 de aplicații au fost decompilate cu succes, rezultând numerele finale din \cref{fig:df_distro}.
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/df_distro.png}
+      \caption{Distribuția finală a categoriilor în setul de date}
+      \label{fig:df_distro}
+\end{figure}
+Pentru antrenare a fost folosit un subset de 80\% din date (din care 20\% pentru validare) și 20\% pentru testare.
+
+\subsection{Model}
+La implementării din lucrare stă arhitectură ierarhică de blocuri PerceiverIO\cite{jaegle2022perceiver}
+a modelului Malceiver\cite{mclaughlin2022malceiver} care folosește 3 feature-uri la nivel de cod:
+\begin{enumerate}
+      \item $C$ - Caracteristicile locale la nivel de relat, ii între opcodes învecinați
+      \item $M$ - Caracteristicile la nivel de metodă
+      \item $g$ - Caracteristicile la nivel global
+\end{enumerate}
+
+\subsection{Nivel local}
+Secvența de opcode-uri este trecută printr-un strat Embedding pentru a învăța reprezentările semantice a fiecărui opcode.
+Acestor reprezentări le este aplicată o convoluție pentru a captura relațiile dintre opcode-uri și a comprima secvența\cite{hassani2022escaping}.
+
+Astfel se obține o matrice de filtre convoluționale $C \in \mathbb{R}^{n \times c}$,
+unde $n$ corespunde cu lungimea secvenței iar $c$ corespunde cu numărul de filtre convoluționale.
+Aceasta este introdusă în primul bloc PerceiverIO care va returna matricea latentă pentru următorul bloc.
+
+\subsection{Nivel de metodă}
+Se calculează suma cumulată a matricii $C$, și se obține matricea $\hat{C} \in \mathbb{R}^{n \times c}$.
+Apoi se calculează o sinteză a fiecărei metode folosind vectorul de indici $\mathcal{F}$ și matricea $\hat{C}$:
+$$ M = \left( \frac{\widehat{C}_{e_f} - \widehat{C}_{s_f}}{e_f - s_f} \right), (s_f, e_f) \in \mathcal{F} $$
+Prin aceasta se obține matricea $M \in \mathbb{R}^{F \times c}$, $F$ fiind numărul de metode din APK.
+Matricea conține sinteze a tuturor metodelor, fiecare fiind normalizată folosind lungimea sa.
+Se introduce matricea în al doilea bloc PerceiverIO care va returna matricea latentă pentru următorul bloc.
+
+\subsection{Nivel global}
+Se aplică Global Max-Pooling peste matricea $C$, și se obține un vector de caracteristici $g \in \mathbb{R}^{1 \times n}$ care reprezintă o sinteză globală bytecode-ului.
+Se introduce în al treilea bloc PerceiverIO care va returna matricea latentă pentru concatenare cu output-ul de la Multi Layer Perceptron (MLP)\cite{haykin1994neural} al permisiunilor.
+
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/malceiver.png}
+      \caption{Arhitectura Rețelei Malceiver\cite{mclaughlin2022malceiver} (Figura 1) \textit{arXiv:2204.05994}, 2022. \href{https://doi.org/10.48550/arXiv.2204.05994}{doi:10.48550/arXiv.2204.05994}.}
+      \label{fig:malceiver}
+\end{figure}
+
+\subsection{Permisiuni}
+Una din deviațiile de la implementarea originală a modelului Malceiver din \cref{fig:malceiver} constă în abordarea diferită a permisiunilor.
+În loc să fie folosit un strat Embedding și încă un bloc PerceiverIO, se folosește un simplu MLP,
+rezultatul fiind concatenat cu matricea latentă finală la care s-a aplicat un Global Average Pooling.
+În urma experimentării sa depistat că această concatenare a dat rezulate mai bune,
+iar numărul de parametri a fost redus.
+
+\subsection{Output}
+Vectorul concatenat este unit cu un strat alcătuit din 5 neuroni corespunzători fiecărei categorii.
+Funcția de activare folosită este \textit{sigmoid} pentru fiecare neuron, iar funcția de loss este \textit{Binary Crossentropy}.
+Aceasta a fost o modificare minoră față de implementarea originală pentru a adapta modelul la clasificare multi-label în loc de binară.
+Prin unirea tuturor blocurilor este obținut modelul final din \cref{fig:model} antrenat pe datasetul CICMalDroid 2020\cite{cicmaldroid0,cicmaldroid1}.
+
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=0.8\textwidth]{visuals/model.png}
+      \caption{Modelul final}
+      \label{fig:model}
+\end{figure}
+
+\subsection{Antrenare}
+Antrenarea a fost realizată folosind biblioteca Keras\cite{chollet2015keras} pentru Python.
+Keras simplifică antrenarea modelului prin expunerea unor funcționalități precum callback-uri.
+Astfel este posibilă o antrenare fără cod redundant și cu o structură clară ca în \cref{fig:train}.
+
+Pentru a asigura obținerea celui mai performant model, a fost folosit callback-ul \textit{ModelCheckpoint}. 
+\textit{ModelCheckpoint} salvează modelul/ponderile într-un fișier dacă metrica prestabilită este îmbunătățită.
+În cazul modelului elaborat, metrica prestabilită a fost \textit{val\_accuracy} (acuratețea pe setul de validare).
+
+Prevenirea overfitting-ului este realizată de callback-ul \textit{EarlyStopping}.
+\textit{EarlyStopping} oprește antrenarea dacă metrica prestabilită (\textit{val\_accuracy}) nu se îmbunătățește într-un număr de epoci consecutiv,
+5 în cazul modelului elaborat.
+
+
+\begin{figure}[H]
+      \centering
+      \includegraphics[width=\textwidth]{visuals/train.png}
+      \caption{Snippet cu antrenarea modelului}
+      \label{fig:train}
+\end{figure}
+
+\chapter{Rezultate experimentale}
 \section{Descrierea procesului de testare}
 \section{Rezultate experimentale}
 
@@ -266,10 +544,5 @@ Pe lângă aceasta, fișierul manifest răspunde de următoarele:
 \addcontentsline{toc}{chapter}{Bibliografie}
 \bibliographystyle{plainnat}
 \bibliography{bibliography}
-
-% \appendix
-% \chapter{Anexe}
-% \section{Cod sursă}
-% \lstinputlisting[language=Python]{source_code.py}
 
 \end{document}

@@ -82,10 +82,10 @@ def get_model(latent_length=32, hidden_dim=16, n_perms=50, n_categories=5):
     latent_state = PerceiverIO(latent_dim=hidden_dim, latent_length=latent_length, name='methods_perceiver')(latent_state, method_features)
 
     # Global modality
-    # global_features = keras.layers.GlobalMaxPooling1D(keepdims=True)(filters)
-    # latent_state = PerceiverIO(latent_dim=hidden_dim, latent_length=latent_length, depth=depth)(latent_state, global_features)
+    global_features = keras.layers.GlobalMaxPooling1D(keepdims=True)(filters)
+    latent_state = PerceiverIO(latent_dim=hidden_dim, latent_length=latent_length, name='global_perceiver')(latent_state, global_features)
 
-    # Permissions modality
+    # Permissions
     permissions_hidden = keras.layers.Dense((n_perms + hidden_dim) // 2, activation='relu', name='permissions_hidden_layer')(permissions_input)
     permissions_logits = keras.layers.Dense(hidden_dim // 2, activation='relu', name='permissions_logits')(permissions_hidden)
 
