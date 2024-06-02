@@ -12,13 +12,17 @@ const App = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         const selectedFiles = [...e.target.files];
         setFiles(selectedFiles);
         const newFileMap = {};
-        selectedFiles.forEach(file => {
-            newFileMap[file.name] = '';
-        });
+        for (const file of selectedFiles) {
+            const arrayBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+            newFileMap[hashHex] = file.name;
+        }
         setFileMap(newFileMap);
     };
 
@@ -44,15 +48,13 @@ const App = () => {
 
             const result = await response.json();
             if (result.success) {
-                const updatedFileMap = { ...fileMap };
-                result.success.forEach(res => {
-                    const file = files.find(f => updatedFileMap[f.name] === '');
-                    if (file) {
-                        updatedFileMap[file.name] = res.sha256;
-                    }
-                });
-                setFileMap(updatedFileMap);
-                setResults(result.success);
+                const new_results = result.success.map((res) => ({
+                    filename: fileMap.hasOwnProperty(res.sha256) ? fileMap[res.sha256] : '',
+                    sha256: res.sha256,
+                    prediction: res.prediction
+                }))
+                new_results.sort((a, b) => a.filename.localeCompare(b.filename));
+                setResults(new_results);
             } else {
                 setError(result.error);
             }
@@ -137,9 +139,7 @@ const App = () => {
                         {results.map((result, index) => (
                             <li key={index}>
                                 <div className="result">
-                                    {fileMap && Object.values(fileMap).includes(result.sha256) && (
-                                        <p><strong>Filename:</strong> {Object.keys(fileMap).find(key => fileMap[key] === result.sha256)}</p>
-                                    )}
+                                    <p><strong>Filename:</strong> {result.filename}</p>
                                     <p><strong>SHA256:</strong> {result.sha256}</p>
                                     <p style={{ color: getTextColor(result.prediction.det) }}>
                                         <strong>Detection:</strong> {capitalize(result.prediction.det)}

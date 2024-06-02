@@ -165,7 +165,7 @@ async fn scan(
                 if let Err(e) = coll.insert_many(&values, None).await {
                     error!("MongoDB insertion failed - {e}");
                 }
-                let mut scan_results: Vec<_> = values
+                let scan_results: Vec<_> = values
                     .into_iter()
                     .map(
                         |MalceiverDocument {
@@ -178,7 +178,6 @@ async fn scan(
                             .map(|(sha256, prediction)| ScanResponse { sha256, prediction }),
                     )
                     .collect();
-                scan_results.sort_by(|a, b| a.sha256.cmp(&b.sha256));
                 info!("Scan completed successfully!");
                 Json(ApiResponse::Success(scan_results))
             }

@@ -23,6 +23,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USR}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PWD}
+    ports:
+      - 27017:27017
 
   mongo-express:
     image: mongo-express
