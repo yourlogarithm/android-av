@@ -139,7 +139,7 @@ const App = () => {
                         {results.map((result, index) => (
                             <li key={index}>
                                 <div className="result">
-                                    <p><strong>Filename:</strong> {result.filename}</p>
+                                    {result.filename ? <p><strong>Filename:</strong> {result.filename}</p> : null}
                                     <p><strong>SHA256:</strong> {result.sha256}</p>
                                     <p style={{ color: getTextColor(result.prediction.det) }}>
                                         <strong>Detection:</strong> {capitalize(result.prediction.det)}

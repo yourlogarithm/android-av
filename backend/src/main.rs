@@ -193,7 +193,7 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     let args: Vec<String> = std::env::args().collect();
-    let model_path = args.get(1).map(|s| s.as_str()).unwrap_or("/model.pb");
+    let model_path = args.get(1).map(|s| s.as_str()).unwrap_or("./model.pb");
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -211,7 +211,10 @@ async fn main() {
         .route("/query/:hash", get(query))
         .with_state(state)
         .layer(cors);
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:8000"))
+    
+    let addr = "0.0.0.0:8000";
+    info!("Listening on {addr}");
+    let listener = tokio::net::TcpListener::bind(addr)
         .await
         .unwrap();
     axum::serve(listener, app).await.unwrap();

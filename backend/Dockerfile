@@ -1,24 +1,15 @@
 ARG RUST_VERSION=1.78
 ARG APP_NAME=av-api
 
-FROM rust:${RUST_VERSION}-bullseye as builder
+FROM rust:${RUST_VERSION}-bookworm as builder
 ARG APP_NAME
 RUN rustup default nightly
 RUN apt-get update && apt-get install -y cmake
 WORKDIR /app
-RUN --mount=type=bind,source=${APP_NAME}/src,target=${APP_NAME}/src \
-    --mount=type=bind,source=${APP_NAME}/Cargo.toml,target=${APP_NAME}/Cargo.toml \
-    --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
-    --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
-    --mount=type=cache,target=/app/target/ \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
-    <<EOF
-set -e
-cargo build --locked --release
-cp target/release/${APP_NAME} /bin/app
-EOF
+COPY . .
+RUN cargo build --locked --release --bin ${APP_NAME} && cp target/release/${APP_NAME} /bin/app
 
-FROM debian:bullseye-slim AS final
+FROM debian:bookworm-slim AS final
 RUN  apt-get update \
 && apt-get install -y wget \
 && rm -rf /var/lib/apt/lists/*
@@ -39,6 +30,5 @@ RUN adduser \
 USER appuser
 WORKDIR /app
 COPY --from=builder /bin/app /app
-
 EXPOSE 8000
 CMD ["./app"]

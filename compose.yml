@@ -1,15 +1,15 @@
 services:
-  av-api:
-    image: av-api:latest
+  backend:
+    image: backend:latest
     build:
       context: .
-      dockerfile: av-api/Dockerfile
+      dockerfile: backend/Dockerfile
     ports:
       - 8000:8000
     environment:
       - MONGO_URI=mongodb://${MONGO_USR}:${MONGO_PWD}@mongo:27017
     volumes:
-      - ./model.pb:/model.pb
+      - ./model.pb:/app/model.pb
 
   frontend:
     image: frontend:latest
