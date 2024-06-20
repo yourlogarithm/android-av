@@ -78,7 +78,11 @@ const App = () => {
             const response = await fetch(`${API}/query/${hash}`);
 
             if (!response.ok) {
-                throw new Error('Failed to fetch scan result');
+                if (response.status === 404) {
+                    setError('File not found')
+                } else {
+                    throw new Error('Failed to fetch scan result');
+                }
             }
 
             const result = await response.json();

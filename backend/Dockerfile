@@ -1,7 +1,6 @@
-ARG RUST_VERSION=1.78
 ARG APP_NAME=av-api
 
-FROM rust:${RUST_VERSION}-bookworm as builder
+FROM rustlang/rust:nightly-bookworm as builder
 ARG APP_NAME
 RUN rustup default nightly
 RUN apt-get update && apt-get install -y cmake
