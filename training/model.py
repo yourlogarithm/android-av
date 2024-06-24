@@ -91,9 +91,9 @@ def get_model(latent_length=32, hidden_dim=16, n_perms=50, n_categories=5):
 
     pooling = keras.layers.GlobalAveragePooling1D(name='global_pooling')(latent_state)
     joined = keras.layers.Concatenate(name='concatenation_layer')([pooling, permissions_logits])
-    classifier = keras.layers.Dense(n_categories, activation='sigmoid', name='class_out')(joined)
-
+    
+    classifier = keras.layers.Dense(len(categories), activation='softmax')(joined)
     model = keras.models.Model(inputs=[opcode_sequence_input, method_indices_input, permissions_input], outputs=classifier)
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     
     return model
